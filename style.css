@@ -162,3 +162,88 @@ select{
   .main{ grid-template-columns: 1fr; }
   .side{ order:2; }
 }
+
+/* ===== Mobile game mode (fullscreen canvas) ===== */
+body.gameMode { overflow: hidden; }
+
+body.gameMode .wrap{
+  max-width: none;
+  padding: 0;
+}
+
+body.gameMode .topbar,
+body.gameMode .side,
+body.gameMode .footer{
+  display: none !important;
+}
+
+body.gameMode .main{
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  margin-top: 0 !important;
+}
+
+body.gameMode .canvasCard{
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.gameMode canvas{
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Touch controls */
+.touchControls{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.touchControls .tcBtn{
+  pointer-events: auto;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(17,26,47,.55);
+  backdrop-filter: blur(6px);
+  color: rgba(232,238,252,.95);
+  font-weight: 900;
+  border-radius: 16px;
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.touchControls .tcBtn:active{
+  transform: translateY(1px);
+  filter: brightness(1.08);
+}
+
+.touchControls .tcPause{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  font-size: 18px;
+}
+
+.touchControls .tcPad{
+  position: absolute;
+  left: 14px;
+  bottom: 18px;
+  width: 210px;
+  height: 210px;
+}
+
+.touchControls .tcUp{ position:absolute; left: 74px; top: 0; }
+.touchControls .tcDown{ position:absolute; left: 74px; bottom: 0; }
+.touchControls .tcLeft{ position:absolute; left: 0; top: 74px; }
+.touchControls .tcRight{ position:absolute; right: 0; top: 74px; }
+
+@media (min-width: 981px){
+  .touchControls{ display:none !important; }
+}
+
