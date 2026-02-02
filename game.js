@@ -32,79 +32,82 @@
   const toggleObstacles = document.getElementById("toggleObstacles");
   const togglePowerups = document.getElementById("togglePowerups");
 
-  // ======= Settings =======
-  const STORAGE_KEY = "advanced_snake_best_v1";
+  // Touch controls
+  const touchControls = document.getElementById("touchControls");
+  const tcPause = document.getElementById("tcPause");
+  const tcUp = document.getElementById("tcUp");
+  const tcDown = document.getElementById("tcDown");
+  const tcLeft = document.getElementById("tcLeft");
+  const tcRight = document.getElementById("tcRight");
+
+  // ======= Settings / Storage =======
+  const STORAGE_BEST_KEY = "advanced_snake_best_v1";
   const STORAGE_SKIN_KEY = "advanced_snake_skin_v1";
 
-const SKINS = {
-  neon: {
-    name: "Neon",
-    body: ["#7cf4c5", "#7aa8ff"],
-    glow: "rgba(124,244,197,0.30)",
-    particle: "rgba(122,168,255,0.22)",
-    head: "#e8eefc",
-    eye: "rgba(0,0,0,0.55)"
-  },
-  toxic: {
-    name: "Toxic",
-    body: ["#7CFF6B", "#00D18C"],
-    glow: "rgba(124,255,107,0.26)",
-    particle: "rgba(0,209,140,0.20)",
-    head: "#EFFFF2",
-    eye: "rgba(0,0,0,0.55)"
-  },
-  fire: {
-    name: "Fire",
-    body: ["#FFB86B", "#FF3D6E"],
-    glow: "rgba(255,77,66,0.22)",
-    particle: "rgba(255,184,107,0.20)",
-    head: "#FFF1E6",
-    eye: "rgba(0,0,0,0.55)"
-  },
-  ice: {
-    name: "Ice",
-    body: ["#8CEBFF", "#4E7CFF"],
-    glow: "rgba(140,235,255,0.22)",
-    particle: "rgba(78,124,255,0.18)",
-    head: "#F3FBFF",
-    eye: "rgba(0,0,0,0.55)"
-  },
-  gold: {
-    name: "Gold",
-    body: ["#FFE08A", "#FFB703"],
-    glow: "rgba(255,183,3,0.22)",
-    particle: "rgba(255,224,138,0.18)",
-    head: "#FFF7DB",
-    eye: "rgba(0,0,0,0.55)"
-  },
-  carbon: {
-    name: "Carbon",
-    body: ["#C9D6FF", "#3E4A61"],
-    glow: "rgba(201,214,255,0.16)",
-    particle: "rgba(62,74,97,0.18)",
-    head: "#EAEFFC",
-    eye: "rgba(0,0,0,0.55)"
-  }
-};
-  let bestScore = Number(localStorage.getItem(STORAGE_KEY) || 0);
+  let bestScore = Number(localStorage.getItem(STORAGE_BEST_KEY) || 0);
   bestEl.textContent = String(bestScore);
 
-  // Board configuration is in "cells" but render is smooth in pixels.
+  const SKINS = {
+    neon: {
+      name: "Neon",
+      body: ["#7cf4c5", "#7aa8ff"],
+      glow: "rgba(124,244,197,0.30)",
+      particle: "rgba(122,168,255,0.22)",
+      head: "#e8eefc",
+      eye: "rgba(0,0,0,0.55)"
+    },
+    toxic: {
+      name: "Toxic",
+      body: ["#7CFF6B", "#00D18C"],
+      glow: "rgba(124,255,107,0.26)",
+      particle: "rgba(0,209,140,0.20)",
+      head: "#EFFFF2",
+      eye: "rgba(0,0,0,0.55)"
+    },
+    fire: {
+      name: "Fire",
+      body: ["#FFB86B", "#FF3D6E"],
+      glow: "rgba(255,77,66,0.22)",
+      particle: "rgba(255,184,107,0.20)",
+      head: "#FFF1E6",
+      eye: "rgba(0,0,0,0.55)"
+    },
+    ice: {
+      name: "Ice",
+      body: ["#8CEBFF", "#4E7CFF"],
+      glow: "rgba(140,235,255,0.22)",
+      particle: "rgba(78,124,255,0.18)",
+      head: "#F3FBFF",
+      eye: "rgba(0,0,0,0.55)"
+    },
+    gold: {
+      name: "Gold",
+      body: ["#FFE08A", "#FFB703"],
+      glow: "rgba(255,183,3,0.22)",
+      particle: "rgba(255,224,138,0.18)",
+      head: "#FFF7DB",
+      eye: "rgba(0,0,0,0.55)"
+    },
+    carbon: {
+      name: "Carbon",
+      body: ["#C9D6FF", "#3E4A61"],
+      glow: "rgba(201,214,255,0.16)",
+      particle: "rgba(62,74,97,0.18)",
+      head: "#EAEFFC",
+      eye: "rgba(0,0,0,0.55)"
+    }
+  };
+
+  // ======= Board =======
   const BOARD = {
     cols: 30,
     rows: 20,
-    // cell size computed based on canvas size
   };
 
-  // Visual palette
   const COLORS = {
     bgA: "#0b1020",
     bgB: "#0a0d18",
     grid: "rgba(255,255,255,0.05)",
-    glow: "rgba(124,244,197,0.25)",
-    snakeA: "#7cf4c5",
-    snakeB: "#7aa8ff",
-    head: "#e8eefc",
     apple: "#ff5d6c",
     appleGlow: "rgba(255,93,108,0.35)",
     obstacle: "rgba(255,255,255,0.13)",
@@ -118,8 +121,7 @@ const SKINS = {
     { id: "magnet", label: "Магнит", duration: 6500 },
   ];
 
-  // ======= Audio (procedural, no files) =======
-  // Works in most browsers after user interaction.
+  // ======= Audio (procedural) =======
   let audioCtx = null;
   function beep(type = "sine", freq = 440, dur = 0.07, gain = 0.06) {
     try {
@@ -139,47 +141,39 @@ const SKINS = {
     } catch { /* ignore */ }
   }
 
-  // ======= Game State =======
+  // ======= State =======
   const state = {
-
     running: true,
     paused: false,
     gameOver: false,
 
-    // time
     lastTs: 0,
     accumulator: 0,
 
-    // speeds
     stepsPerSecond: 10,
     baseStepsPerSecond: 10,
 
-    // difficulty
     difficulty: "normal",
-    skinId: "neon",
     obstaclesOn: true,
     powerupsOn: true,
 
-    // scoring
+    skinId: "neon",
+
     score: 0,
 
-    // snake
     dir: { x: 1, y: 0 },
     nextDir: { x: 1, y: 0 },
-    segments: [],        // cell positions (grid)
-    renderPts: [],       // smooth positions in pixels, follow the segments
+    segments: [],
+    renderPts: [],
     grow: 0,
 
-    // items
     apple: null,
     obstacles: [],
     powerups: [],
 
-    // effects
     particles: [],
     shake: 0,
 
-    // powerup effects
     effects: {
       shield: 0,
       slow: 0,
@@ -187,13 +181,42 @@ const SKINS = {
     }
   };
 
+  // ======= Mobile game mode =======
+  function isMobileLike() {
+    return window.matchMedia("(max-width: 980px)").matches || ("ontouchstart" in window);
+  }
+
+  function enterGameMode() {
+    if (!isMobileLike()) return;
+    document.body.classList.add("gameMode");
+    touchControls?.classList.remove("hidden");
+    resizeCanvasToDisplaySize();
+    state.renderPts = state.segments.map(s => cellToPx(s));
+  }
+
+  function exitGameMode() {
+    document.body.classList.remove("gameMode");
+    touchControls?.classList.add("hidden");
+    resizeCanvasToDisplaySize();
+    state.renderPts = state.segments.map(s => cellToPx(s));
+  }
+
   // ======= Layout / Resizing =======
   function resizeCanvasToDisplaySize() {
-    // Keep nice aspect by fitting container width
-    const rect = canvas.getBoundingClientRect();
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const inGameMode = document.body.classList.contains("gameMode");
+
+    if (inGameMode) {
+      const w = Math.round(window.innerWidth * dpr);
+      const h = Math.round(window.innerHeight * dpr);
+      canvas.width = w;
+      canvas.height = h;
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
     const w = Math.round(rect.width * dpr);
-    const h = Math.round((rect.width * (2 / 3)) * dpr); // 3:2-ish
+    const h = Math.round((rect.width * (2 / 3)) * dpr);
     canvas.width = w;
     canvas.height = h;
   }
@@ -205,7 +228,6 @@ const SKINS = {
     };
   }
 
-  // Convert cell center to pixel pos
   function cellToPx(c) {
     const { cw, ch } = cellSize();
     return {
@@ -239,7 +261,6 @@ const SKINS = {
       const c = { x: (Math.random() * BOARD.cols) | 0, y: (Math.random() * BOARD.rows) | 0 };
       if (!occ.has(cellKey(c))) return c;
     }
-    // fallback: scan
     for (let y = 0; y < BOARD.rows; y++) {
       for (let x = 0; x < BOARD.cols; x++) {
         const c = { x, y };
@@ -266,7 +287,6 @@ const SKINS = {
 
     for (let i = 0; i < count; i++) {
       const c = randomFreeCell();
-      // don't spawn too close to head
       const head = state.segments[0];
       const dist = Math.abs(c.x - head.x) + Math.abs(c.y - head.y);
       if (dist < 6) continue;
@@ -278,7 +298,6 @@ const SKINS = {
 
   function maybeSpawnPowerup() {
     if (!state.powerupsOn) return;
-    // keep at most 1-2 powerups on board
     if (state.powerups.length >= 2) return;
 
     const diff = state.difficulty;
@@ -292,7 +311,7 @@ const SKINS = {
       state.powerups.push({
         type: type.id,
         cell,
-        ttl: 9000, // ms on board
+        ttl: 9000,
         pulse: 0
       });
     }
@@ -320,7 +339,7 @@ const SKINS = {
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vx *= Math.pow(0.06, dt); // strong damping
+      p.vx *= Math.pow(0.06, dt);
       p.vy *= Math.pow(0.06, dt);
     }
     state.particles = state.particles.filter(p => p.life > 0);
@@ -338,7 +357,31 @@ const SKINS = {
     ctx.restore();
   }
 
-  // ======= Snake Initialization =======
+  // ======= Overlay =======
+  function showOverlay(title, text) {
+    overlayTitle.textContent = title;
+    overlayText.textContent = text;
+    overlay.classList.remove("hidden");
+  }
+  function hideOverlay() {
+    overlay.classList.add("hidden");
+  }
+
+  function setPaused(p) {
+    state.paused = p;
+    if (state.paused) {
+      // когда пауза — показываем меню и возвращаем блоки
+      exitGameMode();
+      showOverlay("Пауза", "Нажми Space или кнопку “Пауза”, чтобы продолжить.");
+      btnPause.textContent = "Продолжить";
+    } else {
+      hideOverlay();
+      btnPause.textContent = "Пауза";
+      state.lastTs = nowMs();
+    }
+  }
+
+  // ======= Game Init =======
   function resetGame() {
     state.running = true;
     state.paused = false;
@@ -357,7 +400,6 @@ const SKINS = {
     state.effects.slow = 0;
     state.effects.magnet = 0;
 
-    // center start
     const sx = (BOARD.cols / 2) | 0;
     const sy = (BOARD.rows / 2) | 0;
 
@@ -368,49 +410,25 @@ const SKINS = {
       { x: sx - 3, y: sy },
     ];
 
-    // render points start at exact cell centers
     state.renderPts = state.segments.map(s => cellToPx(s));
 
     spawnApple();
     spawnObstacles();
     state.powerups = [];
-    hideOverlay();
-  }
-
-  // ======= Overlay =======
-  function showOverlay(title, text) {
-    overlayTitle.textContent = title;
-    overlayText.textContent = text;
-    overlay.classList.remove("hidden");
-  }
-  function hideOverlay() {
-    overlay.classList.add("hidden");
-  }
-
-  function setPaused(p) {
-    state.paused = p;
-    if (state.paused) {
-      showOverlay("Пауза", "Нажми Space или кнопку “Пауза”, чтобы продолжить.");
-      btnPause.textContent = "Продолжить";
-    } else {
-      hideOverlay();
-      btnPause.textContent = "Пауза";
-      // reset time accumulation so it doesn't jump
-      state.lastTs = nowMs();
-    }
   }
 
   function gameOver(reason) {
     state.gameOver = true;
     state.paused = true;
 
-    // update best
     if (state.score > bestScore) {
       bestScore = state.score;
-      localStorage.setItem(STORAGE_KEY, String(bestScore));
+      localStorage.setItem(STORAGE_BEST_KEY, String(bestScore));
       bestEl.textContent = String(bestScore);
     }
 
+    // вернём меню, чтобы можно было рестартнуть
+    exitGameMode();
     showOverlay("Game Over", reason + " Нажми R или “Начать заново”.");
     btnPause.textContent = "Пауза";
     beep("square", 140, 0.10, 0.06);
@@ -419,7 +437,6 @@ const SKINS = {
 
   // ======= Input =======
   function canTurnTo(nx, ny) {
-    // block exact reverse unless length is 1
     const dx = state.dir.x, dy = state.dir.y;
     if (state.segments.length > 1 && nx === -dx && ny === -dy) return false;
     return true;
@@ -439,6 +456,10 @@ const SKINS = {
     }
     if (k === "r") {
       resetGame();
+      // после рестарта оставим меню, чтобы нажали "Продолжить"
+      setPaused(true);
+      overlayTitle.textContent = "Готов?";
+      overlayText.textContent = "Нажми “Продолжить” и игра станет на весь экран.";
       return;
     }
     if (k === "arrowup" || k === "w") setNextDir(0, -1);
@@ -447,7 +468,7 @@ const SKINS = {
     if (k === "arrowright" || k === "d") setNextDir(1, 0);
   });
 
-  // Touch / swipe
+  // Swipe (optional)
   let touchStart = null;
   canvas.addEventListener("touchstart", (e) => {
     if (e.touches && e.touches.length) {
@@ -457,7 +478,6 @@ const SKINS = {
   }, { passive: true });
 
   canvas.addEventListener("touchmove", (e) => {
-    // prevent scroll when swiping on canvas
     e.preventDefault();
   }, { passive: false });
 
@@ -465,6 +485,7 @@ const SKINS = {
     if (!touchStart) return;
     const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
     if (!t) return;
+
     const dx = t.clientX - touchStart.x;
     const dy = t.clientY - touchStart.y;
     touchStart = null;
@@ -486,20 +507,48 @@ const SKINS = {
 
   btnRestart.addEventListener("click", () => {
     resetGame();
+    setPaused(true);
+    overlayTitle.textContent = "Готов?";
+    overlayText.textContent = "Нажми “Продолжить” и игра станет на весь экран.";
     beep("triangle", 660, 0.05, 0.04);
   });
 
   btnResume.addEventListener("click", () => {
-    if (!state.gameOver) setPaused(false);
+    if (!state.gameOver) {
+      enterGameMode();
+      setPaused(false);
+    }
     beep("triangle", 640, 0.05, 0.04);
   });
 
   btnOverlayRestart.addEventListener("click", () => {
     resetGame();
+    enterGameMode();
+    setPaused(false);
     beep("triangle", 660, 0.05, 0.04);
   });
 
-  // Settings controls
+  // Touch control buttons
+  function bindDirBtn(el, nx, ny) {
+    if (!el) return;
+    el.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      setNextDir(nx, ny);
+    });
+    el.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+  }
+  bindDirBtn(tcUp, 0, -1);
+  bindDirBtn(tcDown, 0, 1);
+  bindDirBtn(tcLeft, -1, 0);
+  bindDirBtn(tcRight, 1, 0);
+
+  tcPause?.addEventListener("click", () => {
+    if (state.gameOver) return;
+    setPaused(!state.paused);
+    beep("triangle", 520, 0.05, 0.04);
+  });
+
+  // ======= Settings controls =======
   function applySettingsFromUI() {
     state.baseStepsPerSecond = Number(speedRange.value);
     state.stepsPerSecond = state.baseStepsPerSecond;
@@ -508,34 +557,27 @@ const SKINS = {
     state.difficulty = difficultySel.value;
     state.obstaclesOn = !!toggleObstacles.checked;
     state.powerupsOn = !!togglePowerups.checked;
-      if (skinSel) {
-    state.skinId = skinSel.value;
-    localStorage.setItem(STORAGE_SKIN_KEY, state.skinId);
-  }
+
+    if (skinSel) {
+      state.skinId = skinSel.value;
+      localStorage.setItem(STORAGE_SKIN_KEY, state.skinId);
+    }
   }
 
-  speedRange.addEventListener("input", () => {
-    applySettingsFromUI();
-  });
-  difficultySel.addEventListener("change", () => {
-    applySettingsFromUI();
-    spawnObstacles();
-  });
-  skinSel?.addEventListener("change", () => {
-  applySettingsFromUI();
-  beep("triangle", 740, 0.05, 0.04);
-});
-  toggleObstacles.addEventListener("change", () => {
-    applySettingsFromUI();
-    spawnObstacles();
-  });
+  speedRange.addEventListener("input", () => applySettingsFromUI());
+  difficultySel.addEventListener("change", () => { applySettingsFromUI(); spawnObstacles(); });
+  toggleObstacles.addEventListener("change", () => { applySettingsFromUI(); spawnObstacles(); });
   togglePowerups.addEventListener("change", () => {
     applySettingsFromUI();
-    // clear powerups if turned off
     if (!state.powerupsOn) state.powerups = [];
   });
 
-  // ======= Game Mechanics =======
+  skinSel?.addEventListener("change", () => {
+    applySettingsFromUI();
+    beep("triangle", 740, 0.05, 0.04);
+  });
+
+  // ======= Mechanics =======
   function isObstacle(cell) {
     for (const o of state.obstacles) if (sameCell(o, cell)) return true;
     return false;
@@ -562,11 +604,6 @@ const SKINS = {
     if (!def) return;
     state.effects[typeId] = def.duration;
 
-    if (typeId === "slow") {
-      // slow makes stepsPerSecond lower temporarily
-      // we'll handle in updateEffects
-    }
-
     const headPx = cellToPx(state.segments[0]);
     emitBurst(headPx, 26, "rgba(124,244,197,0.75)", 1);
     beep("sine", 740, 0.06, 0.05);
@@ -574,22 +611,16 @@ const SKINS = {
   }
 
   function updateEffects(dtMs) {
-    // reduce timers
     for (const k of Object.keys(state.effects)) {
       state.effects[k] = Math.max(0, state.effects[k] - dtMs);
     }
 
-    // apply slow effect
     const slowOn = state.effects.slow > 0;
-    if (slowOn) {
-      state.stepsPerSecond = Math.max(5, state.baseStepsPerSecond - 4);
-    } else {
-      state.stepsPerSecond = state.baseStepsPerSecond;
-    }
+    if (slowOn) state.stepsPerSecond = Math.max(5, state.baseStepsPerSecond - 4);
+    else state.stepsPerSecond = state.baseStepsPerSecond;
   }
 
   function magnetPull() {
-    // if magnet active, apple can drift slightly toward head (feels "magnetic")
     if (state.effects.magnet <= 0 || !state.apple) return;
     const head = state.segments[0];
     const a = state.apple;
@@ -597,11 +628,8 @@ const SKINS = {
     const dx = head.x - a.x;
     const dy = head.y - a.y;
     const dist = Math.abs(dx) + Math.abs(dy);
-
-    // only if within range
     if (dist > 9) return;
 
-    // drift 1 cell sometimes, but don't break fairness
     if (Math.random() < 0.12) {
       const step = (Math.abs(dx) > Math.abs(dy))
         ? { x: Math.sign(dx), y: 0 }
@@ -615,20 +643,17 @@ const SKINS = {
   }
 
   function step() {
-    // apply direction at step boundaries
     state.dir = state.nextDir;
 
     const head = state.segments[0];
     const next = { x: head.x + state.dir.x, y: head.y + state.dir.y };
 
-    // collision: wall
+    // wall
     if (!inBounds(next)) {
       if (state.effects.shield > 0) {
-        // bounce (shield saves once per collision moment)
         state.effects.shield = Math.max(0, state.effects.shield - 2200);
         state.shake = Math.max(state.shake, 10);
         beep("square", 220, 0.05, 0.05);
-        // clamp inside and reverse direction to feel like a bounce
         const clamped = { x: clamp(next.x, 0, BOARD.cols - 1), y: clamp(next.y, 0, BOARD.rows - 1) };
         state.nextDir = { x: -state.dir.x, y: -state.dir.y };
         state.dir = state.nextDir;
@@ -637,14 +662,12 @@ const SKINS = {
         return gameOver("Ты врезался в стену.");
       }
     } else {
-      // collision: obstacles
+      // obstacles
       if (isObstacle(next)) {
         if (state.effects.shield > 0) {
           state.effects.shield = Math.max(0, state.effects.shield - 2200);
           state.shake = Math.max(state.shake, 10);
           beep("square", 220, 0.05, 0.05);
-          // don't move into obstacle; instead "skip" this step by keeping head (mini-penalty feel)
-          // also emit particles
           const headPx = cellToPx(head);
           emitBurst(headPx, 14, "rgba(232,238,252,0.55)", 0.9);
           return;
@@ -652,27 +675,24 @@ const SKINS = {
         return gameOver("Ты врезался в препятствие.");
       }
 
-      // collision: self
-      // allow moving into tail cell if tail is going to move away (no grow)
       const wouldGrow = (state.apple && sameCell(next, state.apple));
       const hitSelf = isSnake(next, !wouldGrow && state.grow === 0);
+
       if (hitSelf) {
         if (state.effects.shield > 0) {
           state.effects.shield = Math.max(0, state.effects.shield - 2500);
           state.shake = Math.max(state.shake, 12);
           beep("square", 220, 0.05, 0.05);
-          // cut tail slightly as penalty
           if (state.segments.length > 6) state.segments.splice(-2, 2);
         } else {
           return gameOver("Ты врезался в свой хвост.");
         }
       }
 
-      // move
       state.segments.unshift(next);
     }
 
-    // apple eat
+    // eat apple
     if (state.apple && sameCell(state.segments[0], state.apple)) {
       state.grow += 2;
       addScore(10);
@@ -684,9 +704,7 @@ const SKINS = {
 
       spawnApple();
 
-      // occasionally add obstacles as you progress (if enabled)
       if (state.obstaclesOn && state.score % 50 === 0) {
-        // add 1-2 new obstacles
         const add = (state.difficulty === "hard") ? 2 : 1;
         for (let i = 0; i < add; i++) state.obstacles.push(randomFreeCell());
       }
@@ -704,21 +722,15 @@ const SKINS = {
       }
     }
 
-    // shrink tail if not growing
-    if (state.grow > 0) {
-      state.grow--;
-    } else {
-      state.segments.pop();
-    }
+    if (state.grow > 0) state.grow--;
+    else state.segments.pop();
 
-    // extra mechanics
     maybeSpawnPowerup();
     magnetPull();
   }
 
-  // ======= Smooth Rendering of Snake =======
+  // ======= Smooth render points =======
   function updateRenderPoints(dt) {
-    // Keep renderPts same length
     while (state.renderPts.length < state.segments.length) {
       state.renderPts.push(cellToPx(state.segments[state.renderPts.length]));
     }
@@ -726,8 +738,7 @@ const SKINS = {
       state.renderPts.pop();
     }
 
-    // Smoothly chase each segment's target pixel
-    const follow = 18; // bigger = snappier
+    const follow = 18;
     for (let i = 0; i < state.segments.length; i++) {
       const target = cellToPx(state.segments[i]);
       const p = state.renderPts[i];
@@ -741,14 +752,12 @@ const SKINS = {
   function drawBackground() {
     const w = canvas.width, h = canvas.height;
 
-    // soft gradient
     const g = ctx.createLinearGradient(0, 0, w, h);
     g.addColorStop(0, COLORS.bgA);
     g.addColorStop(1, COLORS.bgB);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    // grid
     const { cw, ch } = cellSize();
     ctx.strokeStyle = COLORS.grid;
     ctx.lineWidth = 1;
@@ -766,7 +775,6 @@ const SKINS = {
     }
     ctx.stroke();
 
-    // vignette
     const vg = ctx.createRadialGradient(w*0.5, h*0.5, Math.min(w,h)*0.25, w*0.5, h*0.5, Math.max(w,h)*0.75);
     vg.addColorStop(0, "rgba(0,0,0,0)");
     vg.addColorStop(1, "rgba(0,0,0,0.42)");
@@ -774,12 +782,22 @@ const SKINS = {
     ctx.fillRect(0, 0, w, h);
   }
 
+  function roundRect(c, x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    c.moveTo(x + rr, y);
+    c.arcTo(x + w, y, x + w, y + h, rr);
+    c.arcTo(x + w, y + h, x, y + h, rr);
+    c.arcTo(x, y + h, x, y, rr);
+    c.arcTo(x, y, x + w, y, rr);
+    c.closePath();
+  }
+
   function drawObstacle(cell) {
     const { cw, ch } = cellSize();
     const x = cell.x * cw;
     const y = cell.y * ch;
-
     const r = Math.min(cw, ch) * 0.18;
+
     ctx.fillStyle = COLORS.obstacle;
     ctx.beginPath();
     roundRect(ctx, x + cw*0.12, y + ch*0.12, cw*0.76, ch*0.76, r);
@@ -793,7 +811,6 @@ const SKINS = {
     const { cw, ch } = cellSize();
     const rad = Math.min(cw, ch) * 0.28;
 
-    // glow
     ctx.save();
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = COLORS.appleGlow;
@@ -802,13 +819,11 @@ const SKINS = {
     ctx.fill();
     ctx.restore();
 
-    // apple body
     ctx.fillStyle = COLORS.apple;
     ctx.beginPath();
     ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
     ctx.fill();
 
-    // small highlight
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.beginPath();
     ctx.arc(p.x - rad*0.28, p.y - rad*0.28, rad*0.35, 0, Math.PI*2);
@@ -820,11 +835,9 @@ const SKINS = {
     for (const p of state.powerups) {
       p.ttl -= dt * 1000;
       p.pulse += dt * 6;
-
       if (p.ttl <= 0) continue;
 
-      const c = p.cell;
-      const px = cellToPx(c);
+      const px = cellToPx(p.cell);
       const base = Math.min(cw, ch) * 0.30;
       const pulse = 1 + Math.sin(p.pulse) * 0.08;
 
@@ -832,7 +845,6 @@ const SKINS = {
       if (p.type === "slow") color = "rgba(122,168,255,0.90)";
       if (p.type === "shield") color = "rgba(232,238,252,0.85)";
 
-      // outer ring
       ctx.save();
       ctx.globalAlpha = 0.55;
       ctx.strokeStyle = color;
@@ -842,13 +854,11 @@ const SKINS = {
       ctx.stroke();
       ctx.restore();
 
-      // core
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(px.x, px.y, base * 0.55 * pulse, 0, Math.PI * 2);
       ctx.fill();
 
-      // icon
       ctx.fillStyle = "rgba(0,0,0,0.35)";
       ctx.font = `${Math.max(12, base * 1.1)}px ui-sans-serif, system-ui`;
       ctx.textAlign = "center";
@@ -856,7 +866,6 @@ const SKINS = {
       ctx.fillText(p.type === "magnet" ? "M" : p.type === "slow" ? "S" : "⛨", px.x, px.y + 0.5);
     }
 
-    // remove expired
     state.powerups = state.powerups.filter(p => p.ttl > 0);
   }
 
@@ -864,23 +873,20 @@ const SKINS = {
     const pts = state.renderPts;
     if (!pts.length) return;
 
+    const skin = SKINS[state.skinId] || SKINS.neon;
+
     const { cw, ch } = cellSize();
     const baseR = Math.min(cw, ch) * 0.34;
 
-    // body gradient stroke
-const skin = SKINS[state.skinId] || SKINS.neon;
+    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, skin.body[0]);
+    grad.addColorStop(1, skin.body[1]);
 
-const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-grad.addColorStop(0, skin.body[0]);
-grad.addColorStop(1, skin.body[1]);
-
-
-    // draw "tube" by connecting circles along path
     ctx.save();
 
     // glow behind snake
     ctx.globalAlpha = 0.22;
-ctx.strokeStyle = skin.glow;
+    ctx.strokeStyle = skin.glow;
     ctx.lineWidth = baseR * 1.9;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -900,7 +906,7 @@ ctx.strokeStyle = skin.glow;
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    // subtle inner highlight
+    // inner highlight
     ctx.globalAlpha = 0.28;
     ctx.strokeStyle = "rgba(255,255,255,0.55)";
     ctx.lineWidth = baseR * 0.50;
@@ -909,12 +915,11 @@ ctx.strokeStyle = skin.glow;
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    // head (bigger + eyes)
+    // head
     const head = pts[0];
     const hx = head.x, hy = head.y;
     const headR = baseR * 0.92;
 
-    // shield aura
     if (state.effects.shield > 0) {
       ctx.save();
       ctx.globalAlpha = 0.25 + 0.18 * Math.sin(nowMs() * 0.006);
@@ -926,18 +931,17 @@ ctx.strokeStyle = skin.glow;
       ctx.restore();
     }
 
-ctx.fillStyle = skin.head;
+    ctx.fillStyle = skin.head;
     ctx.beginPath();
     ctx.arc(hx, hy, headR, 0, Math.PI * 2);
     ctx.fill();
 
-    // eyes direction
+    // eyes
     const dx = state.dir.x, dy = state.dir.y;
     const exOff = headR * 0.35;
     const eyOff = headR * 0.22;
     const eyeR = headR * 0.13;
 
-    // compute perpendicular for two eyes
     const px = -dy, py = dx;
     const e1 = { x: hx + px * exOff + dx * eyOff, y: hy + py * exOff + dy * eyOff };
     const e2 = { x: hx - px * exOff + dx * eyOff, y: hy - py * exOff + dy * eyOff };
@@ -946,7 +950,6 @@ ctx.fillStyle = skin.head;
     ctx.beginPath(); ctx.arc(e1.x, e1.y, eyeR, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(e2.x, e2.y, eyeR, 0, Math.PI*2); ctx.fill();
 
-    // pupils
     ctx.fillStyle = "rgba(0,0,0,0.75)";
     const pupR = eyeR * 0.45;
     const pupOff = eyeR * 0.55;
@@ -957,12 +960,10 @@ ctx.fillStyle = skin.head;
   }
 
   function drawStatusText() {
-    // Show active effects
     const effects = [];
     if (state.effects.shield > 0) effects.push("ЩИТ");
     if (state.effects.slow > 0) effects.push("SLOW");
     if (state.effects.magnet > 0) effects.push("MAGNET");
-
     if (!effects.length) return;
 
     ctx.save();
@@ -977,7 +978,6 @@ ctx.fillStyle = skin.head;
   }
 
   function drawFrame(dt) {
-    // camera shake
     let ox = 0, oy = 0;
     if (state.shake > 0) {
       const s = state.shake;
@@ -991,34 +991,16 @@ ctx.fillStyle = skin.head;
 
     drawBackground();
 
-    // obstacles
     for (const o of state.obstacles) drawObstacle(o);
 
-    // items
     drawApple();
     drawPowerups(dt);
 
-    // snake
     drawSnake();
-
-    // particles
     drawParticles();
-
-    // status
     drawStatusText();
 
     ctx.restore();
-  }
-
-  // rounded rect helper
-  function roundRect(c, x, y, w, h, r) {
-    const rr = Math.min(r, w/2, h/2);
-    c.moveTo(x + rr, y);
-    c.arcTo(x + w, y, x + w, y + h, rr);
-    c.arcTo(x + w, y + h, x, y + h, rr);
-    c.arcTo(x, y + h, x, y, rr);
-    c.arcTo(x, y, x + w, y, rr);
-    c.closePath();
   }
 
   // ======= Main Loop =======
@@ -1029,41 +1011,33 @@ ctx.fillStyle = skin.head;
     if (!state.lastTs) state.lastTs = t;
     let dtMs = t - state.lastTs;
     state.lastTs = t;
-
-    // avoid huge leaps if tab was inactive
     dtMs = Math.min(dtMs, 50);
 
     const dt = dtMs / 1000;
 
-    // Always update particles & render points a bit even in pause (nice look)
     updateParticles(dt);
     updateRenderPoints(dt);
 
     if (!state.paused && !state.gameOver) {
       updateEffects(dtMs);
 
-      // fixed step simulation
       const stepDt = 1 / Math.max(1, state.stepsPerSecond);
       state.accumulator += dt;
 
-      // On hard, a tiny difficulty pressure: slight chance to spawn extra obstacle over time
       if (state.obstaclesOn && state.difficulty === "hard" && Math.random() < 0.002) {
         state.obstacles.push(randomFreeCell());
       }
-
-      // degrade powerups TTL even if stepping slower
-      // handled in drawPowerups via dt, but TTL uses dt; ok.
 
       while (state.accumulator >= stepDt) {
         step();
         state.accumulator -= stepDt;
 
-        // small trail particles for speed feeling
         if (Math.random() < 0.20) {
           const tail = state.renderPts[state.renderPts.length - 1];
-const skin = SKINS[state.skinId] || SKINS.neon;
-emitBurst({ x: tail.x, y: tail.y }, 2, skin.particle, 0.5);
-
+          if (tail) {
+            const skin = SKINS[state.skinId] || SKINS.neon;
+            emitBurst({ x: tail.x, y: tail.y }, 2, skin.particle, 0.5);
+          }
         }
       }
     }
@@ -1072,47 +1046,42 @@ emitBurst({ x: tail.x, y: tail.y }, 2, skin.particle, 0.5);
     requestAnimationFrame(update);
   }
 
-  // ======= Startup =======
+  // ======= Boot =======
+  function applyAdaptiveBoardOnce() {
+    const aspect = canvas.width / canvas.height;
+    if (aspect > 1.6) { BOARD.cols = 34; BOARD.rows = 20; }
+    else if (aspect < 1.2) { BOARD.cols = 26; BOARD.rows = 22; }
+    else { BOARD.cols = 30; BOARD.rows = 20; }
+  }
+
   function boot() {
     resizeCanvasToDisplaySize();
+
+    // load saved skin
     const savedSkin = localStorage.getItem(STORAGE_SKIN_KEY);
-if (savedSkin && SKINS[savedSkin]) {
-  state.skinId = savedSkin;
-  if (skinSel) skinSel.value = savedSkin;
-}
-
-    applySettingsFromUI();
-
-    // scale board depending on aspect by adjusting cols/rows a little (keeps visuals good)
-    // but keep stable for gameplay: don't constantly change.
-    // We'll do one-time adapt: if very wide, add columns; if tall, add rows.
-    const aspect = canvas.width / canvas.height;
-    if (aspect > 1.6) {
-      BOARD.cols = 34; BOARD.rows = 20;
-    } else if (aspect < 1.2) {
-      BOARD.cols = 26; BOARD.rows = 22;
-    } else {
-      BOARD.cols = 30; BOARD.rows = 20;
+    if (savedSkin && SKINS[savedSkin]) {
+      state.skinId = savedSkin;
+      if (skinSel) skinSel.value = savedSkin;
     }
+
+    applyAdaptiveBoardOnce();
+    applySettingsFromUI();
 
     resetGame();
 
-    // show overlay at start (nice UX)
+    // start in menu/pause
     setPaused(true);
     overlayTitle.textContent = "Готов?";
-    overlayText.textContent = "Свайпай или используй WASD/стрелки. Space — пауза.";
-    btnPause.textContent = "Пауза";
+    overlayText.textContent = "Нажми “Продолжить” и на телефоне игра станет на весь экран.";
 
     requestAnimationFrame(update);
   }
 
   window.addEventListener("resize", () => {
     resizeCanvasToDisplaySize();
-    // keep render points aligned
     state.renderPts = state.segments.map(s => cellToPx(s));
   });
 
-  // resume audio on first interaction
   window.addEventListener("pointerdown", () => {
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
   }, { once: true });
