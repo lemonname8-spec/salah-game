@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>Advanced Snake</title>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
+  <div class="wrap" id="app">
     <header class="topbar">
       <div class="brand">
         <div class="dot"></div>
@@ -29,6 +29,19 @@
       <div class="canvasCard">
         <canvas id="game" width="900" height="600" aria-label="Snake game"></canvas>
 
+        <!-- Touch controls (mobile) -->
+        <div id="touchControls" class="touchControls hidden">
+          <button class="tcBtn tcPause" id="tcPause" aria-label="Пауза">II</button>
+
+          <div class="tcPad">
+            <button class="tcBtn tcUp" id="tcUp" aria-label="Вверх">▲</button>
+            <button class="tcBtn tcLeft" id="tcLeft" aria-label="Влево">◀</button>
+            <button class="tcBtn tcRight" id="tcRight" aria-label="Вправо">▶</button>
+            <button class="tcBtn tcDown" id="tcDown" aria-label="Вниз">▼</button>
+          </div>
+        </div>
+
+        <!-- Overlay -->
         <div id="overlay" class="overlay hidden">
           <div class="overlayCard">
             <div class="overlayTitle" id="overlayTitle">Пауза</div>
@@ -40,17 +53,6 @@
             </div>
 
             <div class="settings">
-                <div class="settingRow">
-  <label for="skin">Скин</label>
-  <select id="skin">
-    <option value="neon" selected>Neon (градиент)</option>
-    <option value="toxic">Toxic (яд)</option>
-    <option value="fire">Fire (огонь)</option>
-    <option value="ice">Ice (лёд)</option>
-    <option value="gold">Gold (золото)</option>
-    <option value="carbon">Carbon (карбон)</option>
-  </select>
-</div>
               <div class="settingRow">
                 <label for="speed">Скорость</label>
                 <input id="speed" type="range" min="6" max="16" value="10" />
@@ -63,6 +65,18 @@
                   <option value="easy">Лёгкая</option>
                   <option value="normal" selected>Нормальная</option>
                   <option value="hard">Хард</option>
+                </select>
+              </div>
+
+              <div class="settingRow">
+                <label for="skin">Скин</label>
+                <select id="skin">
+                  <option value="neon" selected>Neon (градиент)</option>
+                  <option value="toxic">Toxic (яд)</option>
+                  <option value="fire">Fire (огонь)</option>
+                  <option value="ice">Ice (лёд)</option>
+                  <option value="gold">Gold (золото)</option>
+                  <option value="carbon">Carbon (карбон)</option>
                 </select>
               </div>
 
@@ -80,8 +94,8 @@
             </div>
 
             <div class="tiny">
-              На телефоне: свайпы по экрану.  
-              Совет: не жми противоположное направление резко — игра это ограничивает.
+              На телефоне: свайпы по экрану или кнопки.  
+              Нажми “Продолжить” — и игра станет на весь экран.
             </div>
           </div>
         </div>
@@ -110,10 +124,11 @@
     </main>
 
     <footer class="footer">
-      Сделано в чистом HTML5 Canvas. Никаких сборок/установок — просто открой index.html.
+      Сделано в чистом HTML5 Canvas. На телефоне жми “Продолжить” для полноэкранного режима.
     </footer>
   </div>
 
   <script src="game.js"></script>
 </body>
 </html>
+
