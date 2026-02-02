@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Advanced Snake</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="title">Advanced Snake</div>
+          <div class="subtitle">WASD/стрелки • Space пауза • R рестарт</div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="pill">Счёт: <span id="score">0</span></div>
+        <div class="pill">Рекорд: <span id="best">0</span></div>
+        <button id="btnPause" class="btn">Пауза</button>
+        <button id="btnRestart" class="btn ghost">Рестарт</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="canvasCard">
+        <canvas id="game" width="900" height="600" aria-label="Snake game"></canvas>
+
+        <div id="overlay" class="overlay hidden">
+          <div class="overlayCard">
+            <div class="overlayTitle" id="overlayTitle">Пауза</div>
+            <div class="overlayText" id="overlayText">Нажми Space или кнопку “Пауза”.</div>
+
+            <div class="controls">
+              <button id="btnResume" class="btn">Продолжить</button>
+              <button id="btnOverlayRestart" class="btn ghost">Начать заново</button>
+            </div>
+
+            <div class="settings">
+                <div class="settingRow">
+  <label for="skin">Скин</label>
+  <select id="skin">
+    <option value="neon" selected>Neon (градиент)</option>
+    <option value="toxic">Toxic (яд)</option>
+    <option value="fire">Fire (огонь)</option>
+    <option value="ice">Ice (лёд)</option>
+    <option value="gold">Gold (золото)</option>
+    <option value="carbon">Carbon (карбон)</option>
+  </select>
+</div>
+              <div class="settingRow">
+                <label for="speed">Скорость</label>
+                <input id="speed" type="range" min="6" max="16" value="10" />
+                <span id="speedVal">10</span>
+              </div>
+
+              <div class="settingRow">
+                <label for="difficulty">Сложность</label>
+                <select id="difficulty">
+                  <option value="easy">Лёгкая</option>
+                  <option value="normal" selected>Нормальная</option>
+                  <option value="hard">Хард</option>
+                </select>
+              </div>
+
+              <div class="settingRow">
+                <label>
+                  <input id="toggleObstacles" type="checkbox" checked />
+                  Препятствия
+                </label>
+
+                <label>
+                  <input id="togglePowerups" type="checkbox" checked />
+                  Пауэр-апы
+                </label>
+              </div>
+            </div>
+
+            <div class="tiny">
+              На телефоне: свайпы по экрану.  
+              Совет: не жми противоположное направление резко — игра это ограничивает.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <div class="cardTitle">Как играть</div>
+          <ul class="list">
+            <li>Ешь яблоки → растёшь и набираешь очки</li>
+            <li>Пауэр-апы: <b>щиты</b>, <b>замедление</b>, <b>магнит</b></li>
+            <li>Опасно: стены, хвост, препятствия</li>
+            <li>Space — пауза, R — рестарт</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="cardTitle">Режимы сложности</div>
+          <div class="tiny">
+            <b>Лёгкая:</b> больше щитов/пауэр-апов, меньше препятствий.<br/>
+            <b>Нормальная:</b> сбалансировано.<br/>
+            <b>Хард:</b> чаще препятствия, реже щиты, скорость ощущается “злее”.
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      Сделано в чистом HTML5 Canvas. Никаких сборок/установок — просто открой index.html.
+    </footer>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
