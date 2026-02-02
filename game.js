@@ -1,29 +1,31 @@
 (() => {
   "use strict";
 
-  // ======= Utilities =======
+  // ===== Utils =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+  const nowMs = () => performance.now();
 
-  function nowMs() { return performance.now(); }
-
-  // ======= DOM =======
+  // ===== DOM =====
   const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
+
+  const overlay = document.getElementById("overlay");
+  const panelTitle = document.getElementById("panelTitle");
+  const panelHint = document.getElementById("panelHint");
+  const footerHint = document.getElementById("footerHint");
 
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
 
-  const overlay = document.getElementById("overlay");
-  const overlayTitle = document.getElementById("overlayTitle");
-  const overlayText = document.getElementById("overlayText");
+  const hudMini = document.getElementById("hudMini");
+  const scoreMini = document.getElementById("scoreMini");
+  const bestMini = document.getElementById("bestMini");
 
-  const btnPause = document.getElementById("btnPause");
+  const btnPlay = document.getElementById("btnPlay");
   const btnRestart = document.getElementById("btnRestart");
-  const btnResume = document.getElementById("btnResume");
-  const btnOverlayRestart = document.getElementById("btnOverlayRestart");
 
   const speedRange = document.getElementById("speed");
   const speedVal = document.getElementById("speedVal");
@@ -32,7 +34,6 @@
   const toggleObstacles = document.getElementById("toggleObstacles");
   const togglePowerups = document.getElementById("togglePowerups");
 
-  // Touch controls
   const touchControls = document.getElementById("touchControls");
   const tcPause = document.getElementById("tcPause");
   const tcUp = document.getElementById("tcUp");
@@ -40,90 +41,48 @@
   const tcLeft = document.getElementById("tcLeft");
   const tcRight = document.getElementById("tcRight");
 
-  // ======= Settings / Storage =======
-  const STORAGE_BEST_KEY = "advanced_snake_best_v1";
-  const STORAGE_SKIN_KEY = "advanced_snake_skin_v1";
+  // ===== Storage =====
+  const STORAGE_BEST_KEY = "advanced_snake_best_v2";
+  const STORAGE_SKIN_KEY = "advanced_snake_skin_v2";
 
   let bestScore = Number(localStorage.getItem(STORAGE_BEST_KEY) || 0);
   bestEl.textContent = String(bestScore);
+  bestMini.textContent = String(bestScore);
 
+  // ===== Skins =====
   const SKINS = {
-    neon: {
-      name: "Neon",
-      body: ["#7cf4c5", "#7aa8ff"],
-      glow: "rgba(124,244,197,0.30)",
-      particle: "rgba(122,168,255,0.22)",
-      head: "#e8eefc",
-      eye: "rgba(0,0,0,0.55)"
-    },
-    toxic: {
-      name: "Toxic",
-      body: ["#7CFF6B", "#00D18C"],
-      glow: "rgba(124,255,107,0.26)",
-      particle: "rgba(0,209,140,0.20)",
-      head: "#EFFFF2",
-      eye: "rgba(0,0,0,0.55)"
-    },
-    fire: {
-      name: "Fire",
-      body: ["#FFB86B", "#FF3D6E"],
-      glow: "rgba(255,77,66,0.22)",
-      particle: "rgba(255,184,107,0.20)",
-      head: "#FFF1E6",
-      eye: "rgba(0,0,0,0.55)"
-    },
-    ice: {
-      name: "Ice",
-      body: ["#8CEBFF", "#4E7CFF"],
-      glow: "rgba(140,235,255,0.22)",
-      particle: "rgba(78,124,255,0.18)",
-      head: "#F3FBFF",
-      eye: "rgba(0,0,0,0.55)"
-    },
-    gold: {
-      name: "Gold",
-      body: ["#FFE08A", "#FFB703"],
-      glow: "rgba(255,183,3,0.22)",
-      particle: "rgba(255,224,138,0.18)",
-      head: "#FFF7DB",
-      eye: "rgba(0,0,0,0.55)"
-    },
-    carbon: {
-      name: "Carbon",
-      body: ["#C9D6FF", "#3E4A61"],
-      glow: "rgba(201,214,255,0.16)",
-      particle: "rgba(62,74,97,0.18)",
-      head: "#EAEFFC",
-      eye: "rgba(0,0,0,0.55)"
-    }
+    neon:   { body:["#7cf4c5","#7aa8ff"], glow:"rgba(124,244,197,0.28)", particle:"rgba(122,168,255,0.22)", head:"#e8eefc", eye:"rgba(0,0,0,0.55)" },
+    toxic:  { body:["#7CFF6B","#00D18C"], glow:"rgba(124,255,107,0.24)", particle:"rgba(0,209,140,0.18)", head:"#EFFFF2", eye:"rgba(0,0,0,0.55)" },
+    fire:   { body:["#FFB86B","#FF3D6E"], glow:"rgba(255,77,66,0.20)",  particle:"rgba(255,184,107,0.18)", head:"#FFF1E6", eye:"rgba(0,0,0,0.55)" },
+    ice:    { body:["#8CEBFF","#4E7CFF"], glow:"rgba(140,235,255,0.20)", particle:"rgba(78,124,255,0.16)", head:"#F3FBFF", eye:"rgba(0,0,0,0.55)" },
+    gold:   { body:["#FFE08A","#FFB703"], glow:"rgba(255,183,3,0.20)",  particle:"rgba(255,224,138,0.16)", head:"#FFF7DB", eye:"rgba(0,0,0,0.55)" },
+    carbon: { body:["#C9D6FF","#3E4A61"], glow:"rgba(201,214,255,0.14)", particle:"rgba(62,74,97,0.18)", head:"#EAEFFC", eye:"rgba(0,0,0,0.55)" },
   };
 
-  // ======= Board =======
-  const BOARD = {
-    cols: 30,
-    rows: 20,
-  };
+  // ===== Board =====
+  // We render full-screen, but keep game grid stable.
+  const BOARD = { cols: 34, rows: 19 }; // ~16:9 feel (34x19)
 
   const COLORS = {
     bgA: "#0b1020",
-    bgB: "#0a0d18",
+    bgB: "#070912",
     grid: "rgba(255,255,255,0.05)",
     apple: "#ff5d6c",
     appleGlow: "rgba(255,93,108,0.35)",
     obstacle: "rgba(255,255,255,0.13)",
-    text: "rgba(232,238,252,0.88)"
+    text: "rgba(232,238,252,0.90)",
   };
 
-  // Powerups types
+  // ===== Powerups =====
   const POWERUP_TYPES = [
-    { id: "shield", label: "Щит", duration: 6500 },
-    { id: "slow", label: "Замедление", duration: 6500 },
-    { id: "magnet", label: "Магнит", duration: 6500 },
+    { id: "shield", duration: 6500 },
+    { id: "slow", duration: 6500 },
+    { id: "magnet", duration: 6500 },
   ];
 
-  // ======= Audio (procedural) =======
+  // ===== Audio (tiny beeps) =====
   let audioCtx = null;
-  function beep(type = "sine", freq = 440, dur = 0.07, gain = 0.06) {
+  function beep(type="sine", freq=440, dur=0.06, gain=0.055) {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const t0 = audioCtx.currentTime;
@@ -132,26 +91,24 @@
       o.type = type;
       o.frequency.value = freq;
       g.gain.value = gain;
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      o.start(t0);
-      o.stop(t0 + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0 + dur);
       g.gain.setValueAtTime(gain, t0);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    } catch { /* ignore */ }
+    } catch {}
   }
 
-  // ======= State =======
+  // ===== State =====
   const state = {
     running: true,
-    paused: false,
+    paused: true,     // we start in menu
     gameOver: false,
 
     lastTs: 0,
     accumulator: 0,
 
-    stepsPerSecond: 10,
     baseStepsPerSecond: 10,
+    stepsPerSecond: 10,
 
     difficulty: "normal",
     obstaclesOn: true,
@@ -174,79 +131,127 @@
     particles: [],
     shake: 0,
 
-    effects: {
-      shield: 0,
-      slow: 0,
-      magnet: 0
-    }
+    effects: { shield: 0, slow: 0, magnet: 0 },
+
+    playingUI: false, // toggles HUD/controls visibility
   };
 
-  // ======= Mobile game mode =======
-  function isMobileLike() {
-    return window.matchMedia("(max-width: 980px)").matches || ("ontouchstart" in window);
-  }
-
-  function enterGameMode() {
-    if (!isMobileLike()) return;
-    document.body.classList.add("gameMode");
-    touchControls?.classList.remove("hidden");
-    resizeCanvasToDisplaySize();
-    state.renderPts = state.segments.map(s => cellToPx(s));
-  }
-
-  function exitGameMode() {
-    document.body.classList.remove("gameMode");
-    touchControls?.classList.add("hidden");
-    resizeCanvasToDisplaySize();
-    state.renderPts = state.segments.map(s => cellToPx(s));
-  }
-
-  // ======= Layout / Resizing =======
-  function resizeCanvasToDisplaySize() {
+  // ===== Sizing: keep 16:9 logical surface inside any screen =====
+  function resizeCanvas() {
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    const inGameMode = document.body.classList.contains("gameMode");
+    const sw = window.innerWidth;
+    const sh = window.innerHeight;
 
-    if (inGameMode) {
-      const w = Math.round(window.innerWidth * dpr);
-      const h = Math.round(window.innerHeight * dpr);
-      canvas.width = w;
-      canvas.height = h;
-      return;
+    // target aspect 16:9
+    const target = 16/9;
+    let w = sw, h = sh;
+    const aspect = sw / sh;
+
+    if (aspect > target) {
+      // screen is wider -> fit height
+      h = sh;
+      w = h * target;
+    } else {
+      // screen is taller -> fit width
+      w = sw;
+      h = w / target;
     }
 
-    const rect = canvas.getBoundingClientRect();
-    const w = Math.round(rect.width * dpr);
-    const h = Math.round((rect.width * (2 / 3)) * dpr);
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+
+    // Center canvas with CSS by using stage flex? We keep it absolute full.
+    // So we draw with letterbox ourselves: we will clear full screen by drawing background on stage? Not possible.
+    // Easiest: we scale canvas to full via CSS already; so we instead set internal resolution to full screen.
+    // BUT we want 16:9 game area: we render with internal viewport inside canvas.
+    // Therefore: set canvas internal to full screen, and compute viewport separately.
+    canvas.width = Math.round(sw * dpr);
+    canvas.height = Math.round(sh * dpr);
+
+    viewport = computeViewport(sw * dpr, sh * dpr);
+  }
+
+  let viewport = { x: 0, y: 0, w: 0, h: 0 };
+  function computeViewport(W, H) {
+    const target = 16/9;
+    const aspect = W / H;
+    let vw = W, vh = H, vx = 0, vy = 0;
+
+    if (aspect > target) {
+      vh = H;
+      vw = Math.round(vh * target);
+      vx = Math.round((W - vw) / 2);
+      vy = 0;
+    } else {
+      vw = W;
+      vh = Math.round(vw / target);
+      vx = 0;
+      vy = Math.round((H - vh) / 2);
+    }
+
+    return { x: vx, y: vy, w: vw, h: vh };
   }
 
   function cellSize() {
     return {
-      cw: canvas.width / BOARD.cols,
-      ch: canvas.height / BOARD.rows
+      cw: viewport.w / BOARD.cols,
+      ch: viewport.h / BOARD.rows
     };
   }
 
   function cellToPx(c) {
     const { cw, ch } = cellSize();
     return {
-      x: (c.x + 0.5) * cw,
-      y: (c.y + 0.5) * ch
+      x: viewport.x + (c.x + 0.5) * cw,
+      y: viewport.y + (c.y + 0.5) * ch
     };
   }
 
   function inBounds(c) {
     return c.x >= 0 && c.x < BOARD.cols && c.y >= 0 && c.y < BOARD.rows;
   }
-
   function sameCell(a, b) {
     return a && b && a.x === b.x && a.y === b.y;
   }
-
   function cellKey(c) { return `${c.x},${c.y}`; }
 
-  // ======= Spawning =======
+  // ===== Orientation / Fullscreen =====
+  async function requestLandscape() {
+    // Only works reliably in fullscreen and only on some browsers.
+    try {
+      if (document.fullscreenElement == null) {
+        // fullscreen the stage (better than canvas alone)
+        await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+      }
+    } catch {}
+
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock("landscape");
+      }
+    } catch {}
+  }
+
+  function showMenu(text = null) {
+    state.paused = true;
+    state.playingUI = false;
+    overlay.classList.remove("hidden");
+    hudMini.classList.add("hidden");
+    touchControls.classList.add("hidden");
+
+    panelTitle.textContent = state.gameOver ? "Game Over" : "Advanced Snake";
+    if (text) panelHint.textContent = text;
+  }
+
+  function showPlayUI() {
+    state.paused = false;
+    state.playingUI = true;
+    overlay.classList.add("hidden");
+    hudMini.classList.remove("hidden");
+    touchControls.classList.remove("hidden");
+  }
+
+  // ===== Spawning =====
   function occupiedSet() {
     const occ = new Set();
     for (const s of state.segments) occ.add(cellKey(s));
@@ -255,12 +260,13 @@
     return occ;
   }
 
-  function randomFreeCell(tries = 400) {
+  function randomFreeCell(tries = 600) {
     const occ = occupiedSet();
     for (let i = 0; i < tries; i++) {
       const c = { x: (Math.random() * BOARD.cols) | 0, y: (Math.random() * BOARD.rows) | 0 };
       if (!occ.has(cellKey(c))) return c;
     }
+    // fallback scan
     for (let y = 0; y < BOARD.rows; y++) {
       for (let x = 0; x < BOARD.cols; x++) {
         const c = { x, y };
@@ -279,15 +285,13 @@
     if (!state.obstaclesOn) return;
 
     const diff = state.difficulty;
-    const count =
-      diff === "easy" ? 10 :
-      diff === "hard" ? 22 : 16;
+    const count = diff === "easy" ? 10 : diff === "hard" ? 22 : 16;
 
+    const head = state.segments[0];
     const occ = new Set(state.segments.map(cellKey));
 
     for (let i = 0; i < count; i++) {
       const c = randomFreeCell();
-      const head = state.segments[0];
       const dist = Math.abs(c.x - head.x) + Math.abs(c.y - head.y);
       if (dist < 6) continue;
       if (occ.has(cellKey(c))) continue;
@@ -301,34 +305,26 @@
     if (state.powerups.length >= 2) return;
 
     const diff = state.difficulty;
-    const chance =
-      diff === "easy" ? 0.030 :
-      diff === "hard" ? 0.017 : 0.022;
+    const chance = diff === "easy" ? 0.030 : diff === "hard" ? 0.017 : 0.022;
 
     if (Math.random() < chance) {
       const type = pick(POWERUP_TYPES);
       const cell = randomFreeCell();
-      state.powerups.push({
-        type: type.id,
-        cell,
-        ttl: 9000,
-        pulse: 0
-      });
+      state.powerups.push({ type: type.id, cell, ttl: 9000, pulse: 0 });
     }
   }
 
-  // ======= Particles =======
+  // ===== Particles =====
   function emitBurst(px, count, color, strength = 1) {
     for (let i = 0; i < count; i++) {
       const a = rand(0, Math.PI * 2);
       const sp = rand(60, 260) * strength;
       state.particles.push({
-        x: px.x,
-        y: px.y,
+        x: px.x, y: px.y,
         vx: Math.cos(a) * sp,
         vy: Math.sin(a) * sp,
         life: rand(0.25, 0.75),
-        size: rand(1.5, 3.5) * strength,
+        size: rand(1.4, 3.4) * strength,
         color
       });
     }
@@ -357,42 +353,17 @@
     ctx.restore();
   }
 
-  // ======= Overlay =======
-  function showOverlay(title, text) {
-    overlayTitle.textContent = title;
-    overlayText.textContent = text;
-    overlay.classList.remove("hidden");
-  }
-  function hideOverlay() {
-    overlay.classList.add("hidden");
-  }
-
-  function setPaused(p) {
-    state.paused = p;
-    if (state.paused) {
-      // когда пауза — показываем меню и возвращаем блоки
-      exitGameMode();
-      showOverlay("Пауза", "Нажми Space или кнопку “Пауза”, чтобы продолжить.");
-      btnPause.textContent = "Продолжить";
-    } else {
-      hideOverlay();
-      btnPause.textContent = "Пауза";
-      state.lastTs = nowMs();
-    }
-  }
-
-  // ======= Game Init =======
+  // ===== Game Init =====
   function resetGame() {
-    state.running = true;
-    state.paused = false;
     state.gameOver = false;
-
     state.score = 0;
     scoreEl.textContent = "0";
+    scoreMini.textContent = "0";
 
     state.dir = { x: 1, y: 0 };
     state.nextDir = { x: 1, y: 0 };
     state.grow = 0;
+
     state.particles = [];
     state.shake = 0;
 
@@ -411,10 +382,19 @@
     ];
 
     state.renderPts = state.segments.map(s => cellToPx(s));
+    state.powerups = [];
 
     spawnApple();
     spawnObstacles();
-    state.powerups = [];
+
+    syncStats();
+  }
+
+  function syncStats() {
+    scoreEl.textContent = String(state.score);
+    scoreMini.textContent = String(state.score);
+    bestEl.textContent = String(bestScore);
+    bestMini.textContent = String(bestScore);
   }
 
   function gameOver(reason) {
@@ -424,53 +404,50 @@
     if (state.score > bestScore) {
       bestScore = state.score;
       localStorage.setItem(STORAGE_BEST_KEY, String(bestScore));
-      bestEl.textContent = String(bestScore);
     }
+    syncStats();
 
-    // вернём меню, чтобы можно было рестартнуть
-    exitGameMode();
-    showOverlay("Game Over", reason + " Нажми R или “Начать заново”.");
-    btnPause.textContent = "Пауза";
     beep("square", 140, 0.10, 0.06);
     beep("sine", 90, 0.12, 0.05);
+
+    showMenu(reason + " • Нажми “Заново” или “Играть”.");
   }
 
-  // ======= Input =======
+  // ===== Input =====
   function canTurnTo(nx, ny) {
     const dx = state.dir.x, dy = state.dir.y;
     if (state.segments.length > 1 && nx === -dx && ny === -dy) return false;
     return true;
   }
-
   function setNextDir(nx, ny) {
     if (!canTurnTo(nx, ny)) return;
     state.nextDir = { x: nx, y: ny };
   }
 
-  window.addEventListener("keydown", (e) => {
-    const k = e.key.toLowerCase();
-    if (k === " " || k === "spacebar") {
+  function bindDirBtn(el, nx, ny) {
+    if (!el) return;
+    el.addEventListener("pointerdown", (e) => {
       e.preventDefault();
-      if (!state.gameOver) setPaused(!state.paused);
-      return;
-    }
-    if (k === "r") {
-      resetGame();
-      // после рестарта оставим меню, чтобы нажали "Продолжить"
-      setPaused(true);
-      overlayTitle.textContent = "Готов?";
-      overlayText.textContent = "Нажми “Продолжить” и игра станет на весь экран.";
-      return;
-    }
-    if (k === "arrowup" || k === "w") setNextDir(0, -1);
-    if (k === "arrowdown" || k === "s") setNextDir(0, 1);
-    if (k === "arrowleft" || k === "a") setNextDir(-1, 0);
-    if (k === "arrowright" || k === "d") setNextDir(1, 0);
+      setNextDir(nx, ny);
+    });
+    el.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+  }
+  bindDirBtn(tcUp, 0, -1);
+  bindDirBtn(tcDown, 0, 1);
+  bindDirBtn(tcLeft, -1, 0);
+  bindDirBtn(tcRight, 1, 0);
+
+  tcPause?.addEventListener("click", () => {
+    if (state.paused) return;
+    state.paused = true;
+    showMenu("Пауза. Нажми “Играть”, чтобы продолжить.");
+    beep("triangle", 520, 0.05, 0.04);
   });
 
-  // Swipe (optional)
+  // Swipe
   let touchStart = null;
   canvas.addEventListener("touchstart", (e) => {
+    if (!state.playingUI) return;
     if (e.touches && e.touches.length) {
       const t = e.touches[0];
       touchStart = { x: t.clientX, y: t.clientY };
@@ -478,10 +455,12 @@
   }, { passive: true });
 
   canvas.addEventListener("touchmove", (e) => {
+    if (!state.playingUI) return;
     e.preventDefault();
   }, { passive: false });
 
   canvas.addEventListener("touchend", (e) => {
+    if (!state.playingUI) return;
     if (!touchStart) return;
     const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
     if (!t) return;
@@ -498,57 +477,28 @@
     else setNextDir(0, dy > 0 ? 1 : -1);
   });
 
-  // Buttons
-  btnPause.addEventListener("click", () => {
-    if (state.gameOver) return;
-    setPaused(!state.paused);
-    beep("triangle", 520, 0.05, 0.04);
-  });
+  // Keyboard (desktop)
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "arrowup" || k === "w") setNextDir(0, -1);
+    if (k === "arrowdown" || k === "s") setNextDir(0, 1);
+    if (k === "arrowleft" || k === "a") setNextDir(-1, 0);
+    if (k === "arrowright" || k === "d") setNextDir(1, 0);
 
-  btnRestart.addEventListener("click", () => {
-    resetGame();
-    setPaused(true);
-    overlayTitle.textContent = "Готов?";
-    overlayText.textContent = "Нажми “Продолжить” и игра станет на весь экран.";
-    beep("triangle", 660, 0.05, 0.04);
-  });
-
-  btnResume.addEventListener("click", () => {
-    if (!state.gameOver) {
-      enterGameMode();
-      setPaused(false);
-    }
-    beep("triangle", 640, 0.05, 0.04);
-  });
-
-  btnOverlayRestart.addEventListener("click", () => {
-    resetGame();
-    enterGameMode();
-    setPaused(false);
-    beep("triangle", 660, 0.05, 0.04);
-  });
-
-  // Touch control buttons
-  function bindDirBtn(el, nx, ny) {
-    if (!el) return;
-    el.addEventListener("pointerdown", (e) => {
+    if (k === " " || k === "spacebar") {
       e.preventDefault();
-      setNextDir(nx, ny);
-    });
-    el.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
-  }
-  bindDirBtn(tcUp, 0, -1);
-  bindDirBtn(tcDown, 0, 1);
-  bindDirBtn(tcLeft, -1, 0);
-  bindDirBtn(tcRight, 1, 0);
-
-  tcPause?.addEventListener("click", () => {
-    if (state.gameOver) return;
-    setPaused(!state.paused);
-    beep("triangle", 520, 0.05, 0.04);
+      if (!state.paused) {
+        state.paused = true;
+        showMenu("Пауза. Нажми “Играть”, чтобы продолжить.");
+      }
+    }
+    if (k === "r") {
+      resetGame();
+      showMenu("Заново. Нажми “Играть”.");
+    }
   });
 
-  // ======= Settings controls =======
+  // ===== Settings =====
   function applySettingsFromUI() {
     state.baseStepsPerSecond = Number(speedRange.value);
     state.stepsPerSecond = state.baseStepsPerSecond;
@@ -558,7 +508,7 @@
     state.obstaclesOn = !!toggleObstacles.checked;
     state.powerupsOn = !!togglePowerups.checked;
 
-    if (skinSel) {
+    if (skinSel && SKINS[skinSel.value]) {
       state.skinId = skinSel.value;
       localStorage.setItem(STORAGE_SKIN_KEY, state.skinId);
     }
@@ -567,17 +517,10 @@
   speedRange.addEventListener("input", () => applySettingsFromUI());
   difficultySel.addEventListener("change", () => { applySettingsFromUI(); spawnObstacles(); });
   toggleObstacles.addEventListener("change", () => { applySettingsFromUI(); spawnObstacles(); });
-  togglePowerups.addEventListener("change", () => {
-    applySettingsFromUI();
-    if (!state.powerupsOn) state.powerups = [];
-  });
+  togglePowerups.addEventListener("change", () => { applySettingsFromUI(); if (!state.powerupsOn) state.powerups = []; });
+  skinSel.addEventListener("change", () => { applySettingsFromUI(); beep("triangle", 740, 0.05, 0.04); });
 
-  skinSel?.addEventListener("change", () => {
-    applySettingsFromUI();
-    beep("triangle", 740, 0.05, 0.04);
-  });
-
-  // ======= Mechanics =======
+  // ===== Mechanics =====
   function isObstacle(cell) {
     for (const o of state.obstacles) if (sameCell(o, cell)) return true;
     return false;
@@ -592,11 +535,7 @@
 
   function addScore(pts) {
     state.score += pts;
-    scoreEl.textContent = String(state.score);
-    if (state.score > bestScore) {
-      bestScore = state.score;
-      bestEl.textContent = String(bestScore);
-    }
+    syncStats();
   }
 
   function startEffect(typeId) {
@@ -605,7 +544,7 @@
     state.effects[typeId] = def.duration;
 
     const headPx = cellToPx(state.segments[0]);
-    emitBurst(headPx, 26, "rgba(124,244,197,0.75)", 1);
+    emitBurst(headPx, 24, "rgba(124,244,197,0.75)", 1);
     beep("sine", 740, 0.06, 0.05);
     beep("triangle", 980, 0.04, 0.035);
   }
@@ -616,8 +555,7 @@
     }
 
     const slowOn = state.effects.slow > 0;
-    if (slowOn) state.stepsPerSecond = Math.max(5, state.baseStepsPerSecond - 4);
-    else state.stepsPerSecond = state.baseStepsPerSecond;
+    state.stepsPerSecond = slowOn ? Math.max(5, state.baseStepsPerSecond - 4) : state.baseStepsPerSecond;
   }
 
   function magnetPull() {
@@ -648,31 +586,29 @@
     const head = state.segments[0];
     const next = { x: head.x + state.dir.x, y: head.y + state.dir.y };
 
-    // wall
     if (!inBounds(next)) {
       if (state.effects.shield > 0) {
         state.effects.shield = Math.max(0, state.effects.shield - 2200);
         state.shake = Math.max(state.shake, 10);
         beep("square", 220, 0.05, 0.05);
+
         const clamped = { x: clamp(next.x, 0, BOARD.cols - 1), y: clamp(next.y, 0, BOARD.rows - 1) };
         state.nextDir = { x: -state.dir.x, y: -state.dir.y };
         state.dir = state.nextDir;
         state.segments.unshift(clamped);
       } else {
-        return gameOver("Ты врезался в стену.");
+        return gameOver("Врезался в стену");
       }
     } else {
-      // obstacles
       if (isObstacle(next)) {
         if (state.effects.shield > 0) {
           state.effects.shield = Math.max(0, state.effects.shield - 2200);
           state.shake = Math.max(state.shake, 10);
           beep("square", 220, 0.05, 0.05);
-          const headPx = cellToPx(head);
-          emitBurst(headPx, 14, "rgba(232,238,252,0.55)", 0.9);
+          emitBurst(cellToPx(head), 14, "rgba(232,238,252,0.55)", 0.9);
           return;
         }
-        return gameOver("Ты врезался в препятствие.");
+        return gameOver("Врезался в препятствие");
       }
 
       const wouldGrow = (state.apple && sameCell(next, state.apple));
@@ -685,20 +621,19 @@
           beep("square", 220, 0.05, 0.05);
           if (state.segments.length > 6) state.segments.splice(-2, 2);
         } else {
-          return gameOver("Ты врезался в свой хвост.");
+          return gameOver("Укусил свой хвост");
         }
       }
 
       state.segments.unshift(next);
     }
 
-    // eat apple
+    // Eat apple
     if (state.apple && sameCell(state.segments[0], state.apple)) {
       state.grow += 2;
       addScore(10);
 
-      const px = cellToPx(state.apple);
-      emitBurst(px, 34, COLORS.appleGlow, 1.2);
+      emitBurst(cellToPx(state.apple), 34, COLORS.appleGlow, 1.2);
       beep("sine", 880, 0.05, 0.05);
       beep("triangle", 660, 0.04, 0.04);
 
@@ -710,7 +645,7 @@
       }
     }
 
-    // powerup pickup
+    // Powerup pickup
     if (state.powerups.length) {
       for (let i = state.powerups.length - 1; i >= 0; i--) {
         const p = state.powerups[i];
@@ -729,7 +664,7 @@
     magnetPull();
   }
 
-  // ======= Smooth render points =======
+  // ===== Smooth render points =====
   function updateRenderPoints(dt) {
     while (state.renderPts.length < state.segments.length) {
       state.renderPts.push(cellToPx(state.segments[state.renderPts.length]));
@@ -748,38 +683,44 @@
     }
   }
 
-  // ======= Drawing =======
-  function drawBackground() {
-    const w = canvas.width, h = canvas.height;
+  // ===== Draw =====
+  function drawLetterbox() {
+    // Fill full screen with background, then render the 16:9 viewport on top.
+    const W = canvas.width, H = canvas.height;
 
-    const g = ctx.createLinearGradient(0, 0, w, h);
+    const g = ctx.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, COLORS.bgA);
     g.addColorStop(1, COLORS.bgB);
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, W, H);
 
+    // subtle vignette
+    const vg = ctx.createRadialGradient(W*0.5, H*0.5, Math.min(W,H)*0.25, W*0.5, H*0.5, Math.max(W,H)*0.8);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,0.45)");
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrid() {
     const { cw, ch } = cellSize();
+    ctx.save();
     ctx.strokeStyle = COLORS.grid;
     ctx.lineWidth = 1;
 
     ctx.beginPath();
     for (let x = 1; x < BOARD.cols; x++) {
-      const px = x * cw;
-      ctx.moveTo(px, 0);
-      ctx.lineTo(px, h);
+      const px = viewport.x + x * cw;
+      ctx.moveTo(px, viewport.y);
+      ctx.lineTo(px, viewport.y + viewport.h);
     }
     for (let y = 1; y < BOARD.rows; y++) {
-      const py = y * ch;
-      ctx.moveTo(0, py);
-      ctx.lineTo(w, py);
+      const py = viewport.y + y * ch;
+      ctx.moveTo(viewport.x, py);
+      ctx.lineTo(viewport.x + viewport.w, py);
     }
     ctx.stroke();
-
-    const vg = ctx.createRadialGradient(w*0.5, h*0.5, Math.min(w,h)*0.25, w*0.5, h*0.5, Math.max(w,h)*0.75);
-    vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(0,0,0,0.42)");
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
   }
 
   function roundRect(c, x, y, w, h, r) {
@@ -794,8 +735,8 @@
 
   function drawObstacle(cell) {
     const { cw, ch } = cellSize();
-    const x = cell.x * cw;
-    const y = cell.y * ch;
+    const x = viewport.x + cell.x * cw;
+    const y = viewport.y + cell.y * ch;
     const r = Math.min(cw, ch) * 0.18;
 
     ctx.fillStyle = COLORS.obstacle;
@@ -807,7 +748,6 @@
   function drawApple() {
     if (!state.apple) return;
     const p = cellToPx(state.apple);
-
     const { cw, ch } = cellSize();
     const rad = Math.min(cw, ch) * 0.28;
 
@@ -832,6 +772,7 @@
 
   function drawPowerups(dt) {
     const { cw, ch } = cellSize();
+
     for (const p of state.powerups) {
       p.ttl -= dt * 1000;
       p.pulse += dt * 6;
@@ -860,7 +801,7 @@
       ctx.fill();
 
       ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.font = `${Math.max(12, base * 1.1)}px ui-sans-serif, system-ui`;
+      ctx.font = `${Math.max(12, base * 1.05)}px ui-sans-serif, system-ui`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(p.type === "magnet" ? "M" : p.type === "slow" ? "S" : "⛨", px.x, px.y + 0.5);
@@ -874,17 +815,16 @@
     if (!pts.length) return;
 
     const skin = SKINS[state.skinId] || SKINS.neon;
-
     const { cw, ch } = cellSize();
     const baseR = Math.min(cw, ch) * 0.34;
 
-    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    const grad = ctx.createLinearGradient(viewport.x, viewport.y, viewport.x + viewport.w, viewport.y + viewport.h);
     grad.addColorStop(0, skin.body[0]);
     grad.addColorStop(1, skin.body[1]);
 
     ctx.save();
 
-    // glow behind snake
+    // Glow
     ctx.globalAlpha = 0.22;
     ctx.strokeStyle = skin.glow;
     ctx.lineWidth = baseR * 1.9;
@@ -895,19 +835,17 @@
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    // main tube
+    // Body
     ctx.globalAlpha = 1;
     ctx.strokeStyle = grad;
     ctx.lineWidth = baseR * 1.35;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    // inner highlight
-    ctx.globalAlpha = 0.28;
+    // Highlight
+    ctx.globalAlpha = 0.26;
     ctx.strokeStyle = "rgba(255,255,255,0.55)";
     ctx.lineWidth = baseR * 0.50;
     ctx.beginPath();
@@ -915,14 +853,14 @@
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    // head
+    // Head
     const head = pts[0];
     const hx = head.x, hy = head.y;
     const headR = baseR * 0.92;
 
     if (state.effects.shield > 0) {
       ctx.save();
-      ctx.globalAlpha = 0.25 + 0.18 * Math.sin(nowMs() * 0.006);
+      ctx.globalAlpha = 0.22 + 0.16 * Math.sin(nowMs() * 0.006);
       ctx.strokeStyle = "rgba(232,238,252,0.70)";
       ctx.lineWidth = headR * 0.35;
       ctx.beginPath();
@@ -936,7 +874,7 @@
     ctx.arc(hx, hy, headR, 0, Math.PI * 2);
     ctx.fill();
 
-    // eyes
+    // Eyes
     const dx = state.dir.x, dy = state.dir.y;
     const exOff = headR * 0.35;
     const eyOff = headR * 0.22;
@@ -968,12 +906,12 @@
 
     ctx.save();
     ctx.fillStyle = COLORS.text;
-    ctx.font = `${Math.round(canvas.height * 0.032)}px ui-sans-serif, system-ui`;
+    ctx.font = `${Math.round(viewport.h * 0.040)}px ui-sans-serif, system-ui`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.shadowColor = "rgba(0,0,0,0.35)";
     ctx.shadowBlur = 14;
-    ctx.fillText("ЭФФЕКТЫ: " + effects.join(" • "), 16, 14);
+    ctx.fillText("ЭФФЕКТЫ: " + effects.join(" • "), viewport.x + 14, viewport.y + 12);
     ctx.restore();
   }
 
@@ -989,10 +927,10 @@
     ctx.save();
     ctx.translate(ox, oy);
 
-    drawBackground();
+    drawLetterbox();
+    drawGrid();
 
     for (const o of state.obstacles) drawObstacle(o);
-
     drawApple();
     drawPowerups(dt);
 
@@ -1003,7 +941,7 @@
     ctx.restore();
   }
 
-  // ======= Main Loop =======
+  // ===== Loop =====
   function update(ts) {
     if (!state.running) return;
 
@@ -1024,10 +962,6 @@
       const stepDt = 1 / Math.max(1, state.stepsPerSecond);
       state.accumulator += dt;
 
-      if (state.obstaclesOn && state.difficulty === "hard" && Math.random() < 0.002) {
-        state.obstacles.push(randomFreeCell());
-      }
-
       while (state.accumulator >= stepDt) {
         step();
         state.accumulator -= stepDt;
@@ -1046,45 +980,70 @@
     requestAnimationFrame(update);
   }
 
-  // ======= Boot =======
-  function applyAdaptiveBoardOnce() {
-    const aspect = canvas.width / canvas.height;
-    if (aspect > 1.6) { BOARD.cols = 34; BOARD.rows = 20; }
-    else if (aspect < 1.2) { BOARD.cols = 26; BOARD.rows = 22; }
-    else { BOARD.cols = 30; BOARD.rows = 20; }
-  }
+  // ===== UI Actions =====
+  btnRestart.addEventListener("click", () => {
+    applySettingsFromUI();
+    resetGame();
+    showMenu("Заново. Нажми “Играть”.");
+    beep("triangle", 660, 0.05, 0.04);
+  });
 
+  btnPlay.addEventListener("click", async () => {
+    applySettingsFromUI();
+
+    // try fullscreen + landscape
+    await requestLandscape();
+
+    // resize after possible orientation/fullscreen change
+    resizeCanvas();
+    state.renderPts = state.segments.map(s => cellToPx(s));
+
+    // If still portrait, show a small hint (but still allow playing)
+    const portrait = window.innerHeight > window.innerWidth;
+    if (portrait) {
+      panelHint.textContent = "Если игра не повернулась: включи автоповорот и поверни телефон горизонтально (landscape).";
+    }
+
+    // start/resume
+    state.gameOver = false;
+    showPlayUI();
+    beep("triangle", 640, 0.05, 0.04);
+  });
+
+  // Resume audio on first interaction
+  window.addEventListener("pointerdown", () => {
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  }, { once: true });
+
+  // ===== Boot =====
   function boot() {
-    resizeCanvasToDisplaySize();
-
     // load saved skin
     const savedSkin = localStorage.getItem(STORAGE_SKIN_KEY);
     if (savedSkin && SKINS[savedSkin]) {
       state.skinId = savedSkin;
-      if (skinSel) skinSel.value = savedSkin;
+      skinSel.value = savedSkin;
     }
 
-    applyAdaptiveBoardOnce();
+    resizeCanvas();
     applySettingsFromUI();
-
     resetGame();
 
-    // start in menu/pause
-    setPaused(true);
-    overlayTitle.textContent = "Готов?";
-    overlayText.textContent = "Нажми “Продолжить” и на телефоне игра станет на весь экран.";
-
+    showMenu("Нажми “Играть”. На телефоне игра будет как приложение: один экран.");
     requestAnimationFrame(update);
   }
 
   window.addEventListener("resize", () => {
-    resizeCanvasToDisplaySize();
+    resizeCanvas();
     state.renderPts = state.segments.map(s => cellToPx(s));
   });
 
-  window.addEventListener("pointerdown", () => {
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
-  }, { once: true });
+  // On orientation change (some browsers)
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      resizeCanvas();
+      state.renderPts = state.segments.map(s => cellToPx(s));
+    }, 250);
+  });
 
   boot();
 })();
